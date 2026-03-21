@@ -5,6 +5,7 @@ import time
 from dataclasses import dataclass, field, asdict
 from typing import Optional
 from config import *
+from notify import notify_trade
 
 
 @dataclass
@@ -97,6 +98,7 @@ class PaperTrader:
                f"SL: ${stop_loss:,.2f} | TP: ${take_profit:,.2f} | "
                f"Fee: ${fee:.2f} | {signal_reason}")
         self._log(msg)
+        notify_trade(msg)
         return msg
 
     def check_exit(self, price: float) -> Optional[str]:
@@ -166,6 +168,7 @@ class PaperTrader:
                f"PnL: ${pnl:,.2f} ({pnl_pct:+.2f}%) | "
                f"Balance: ${self.balance:,.2f} | {reason}")
         self._log(msg)
+        notify_trade(msg)
         return msg
 
     def get_stats(self) -> dict:
