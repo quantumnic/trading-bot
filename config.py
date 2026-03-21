@@ -6,11 +6,11 @@ TRADING_FEE = 0.001  # 0.1% per trade (Binance-like)
 
 # Strategy Settings
 SYMBOL = "BTCUSDT"
-TIMEFRAME = "1m"  # 1-minute candles for fast iteration
+TIMEFRAME = "5m"  # 5-minute candles, less noise
 
 # EMA Crossover Strategy
-EMA_FAST = 9
-EMA_SLOW = 21
+EMA_FAST = 12
+EMA_SLOW = 26
 RSI_PERIOD = 14
 RSI_OVERBOUGHT = 70
 RSI_OVERSOLD = 30
@@ -20,6 +20,8 @@ POSITION_SIZE_PCT = 0.95  # Use 95% of balance per trade
 STOP_LOSS_PCT = 0.02  # 2% stop loss
 TAKE_PROFIT_PCT = 0.04  # 4% take profit (2:1 R/R)
 TRAILING_STOP_PCT = 0.015  # 1.5% trailing stop
+MIN_SIGNAL_SCORE = 5  # Minimum confirmation points (out of 7) for entry
+MIN_HOLD_CANDLES = 10  # Hold position at least N candles before signal-exit
 
 # Bot Settings
 LOG_FILE = "trades.log"

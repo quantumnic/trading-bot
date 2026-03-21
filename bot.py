@@ -16,6 +16,7 @@ import requests
 from datetime import datetime
 
 from config import *
+MIN_HOLD_CANDLES = getattr(__import__('config'), 'MIN_HOLD_CANDLES', 10)
 from strategy import EMAcrossRSI, Signal
 from paper_trader import PaperTrader
 
@@ -32,6 +33,7 @@ class TradingBot:
         self.last_report = time.time()
         self.running = True
         self.tick_count = 0
+        self.candles_in_position = 0  # Track how long in position
 
         signal.signal(signal.SIGINT, self._shutdown)
         signal.signal(signal.SIGTERM, self._shutdown)
@@ -98,6 +100,10 @@ class TradingBot:
             if len(self.candles) > CANDLE_HISTORY:
                 self.candles = self.candles[-CANDLE_HISTORY:]
 
+            # Track candles while in position
+            if self.trader.position:
+                self.candles_in_position += 1
+
             # Run strategy
             df = pd.DataFrame(self.candles)
             signal_result = self.strategy.evaluate(df)
@@ -105,10 +111,13 @@ class TradingBot:
             if signal_result.signal == Signal.BUY and not self.trader.position:
                 msg = self.trader.open_position(price, signal_result.reason)
                 if msg:
+                    self.candles_in_position = 0
                     print(msg)
-            elif signal_result.signal == Signal.SELL and self.trader.position:
+            elif (signal_result.signal == Signal.SELL and self.trader.position
+                  and self.candles_in_position >= MIN_HOLD_CANDLES):
                 msg = self.trader.close_position(price, signal_result.reason)
                 if msg:
+                    self.candles_in_position = 0
                     print(msg)
 
         # Periodic report (every 30 min)

@@ -151,11 +151,12 @@ class EMAcrossRSI:
             sell_signals += 1
             sell_reasons.append("Near BB upper")
 
-        # Decision
-        if buy_signals >= 4 and buy_signals > sell_signals:
+        # Decision — require strong confluence
+        from config import MIN_SIGNAL_SCORE
+        if buy_signals >= MIN_SIGNAL_SCORE and buy_signals > sell_signals + 1:
             confidence = min(buy_signals / 7, 1.0)
             return TradeSignal(Signal.BUY, confidence, " + ".join(reasons))
-        elif sell_signals >= 4 and sell_signals > buy_signals:
+        elif sell_signals >= MIN_SIGNAL_SCORE and sell_signals > buy_signals + 1:
             confidence = min(sell_signals / 7, 1.0)
             return TradeSignal(Signal.SELL, confidence, " + ".join(sell_reasons))
 
