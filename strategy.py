@@ -62,10 +62,17 @@ class EMAcrossRSI:
         self.rsi_os = rsi_os
 
     def evaluate(self, df: pd.DataFrame) -> TradeSignal:
-        if len(df) < max(self.slow, 26) + 10:
+        if len(df) < max(self.slow, 50) + 10:
             return TradeSignal(Signal.HOLD, 0, "Not enough data")
 
         close = df["close"]
+
+        # Trend filter: EMA50 determines macro trend
+        ema_trend = ema(close, 50)
+        cur_trend = ema_trend.iloc[-1]
+        cur_price_val = close.iloc[-1]
+        is_uptrend = cur_price_val > cur_trend
+        is_downtrend = cur_price_val < cur_trend
 
         # Indicators
         ema_fast = ema(close, self.fast)
@@ -151,14 +158,23 @@ class EMAcrossRSI:
             sell_signals += 1
             sell_reasons.append("Near BB upper")
 
-        # Decision — require strong confluence
+        # Decision — require strong confluence + trend alignment
         from config import MIN_SIGNAL_SCORE
-        if buy_signals >= MIN_SIGNAL_SCORE and buy_signals > sell_signals + 1:
+
+        # Only go LONG in uptrend, only SELL/exit in downtrend
+        if buy_signals >= MIN_SIGNAL_SCORE and buy_signals > sell_signals + 1 and is_uptrend:
             confidence = min(buy_signals / 7, 1.0)
-            return TradeSignal(Signal.BUY, confidence, " + ".join(reasons))
+            return TradeSignal(Signal.BUY, confidence,
+                               " + ".join(reasons) + " [Uptrend ✅]")
         elif sell_signals >= MIN_SIGNAL_SCORE and sell_signals > buy_signals + 1:
             confidence = min(sell_signals / 7, 1.0)
-            return TradeSignal(Signal.SELL, confidence, " + ".join(sell_reasons))
+            return TradeSignal(Signal.SELL, confidence,
+                               " + ".join(sell_reasons) +
+                               (" [Downtrend ⚠️]" if is_downtrend else ""))
+        elif is_downtrend and buy_signals >= MIN_SIGNAL_SCORE:
+            # Would buy but trend is against us — skip
+            return TradeSignal(Signal.HOLD, 0,
+                               f"Buy signal blocked by downtrend (price < EMA50)")
 
         return TradeSignal(Signal.HOLD, 0,
                            f"No clear signal (buy={buy_signals}, sell={sell_signals})")

@@ -85,8 +85,8 @@ def generate_chart(output_path="performance.png"):
     if position:
         status_text += f'  |  📊 Open: LONG @ ${position["entry_price"]:,.0f}'
 
-    ax.set_xlabel(status_text, color='#aaaaaa', fontsize=10, labelpad=10)
-    ax.set_ylabel('Balance ($)', color='#aaaaaa', fontsize=11)
+    ax.set_xlabel(status_text.replace('$', r'\$'), color='#aaaaaa', fontsize=10, labelpad=10)
+    ax.set_ylabel(r'Balance (\$)', color='#aaaaaa', fontsize=11)
 
     # Formatting
     ax.tick_params(colors='#888888')
