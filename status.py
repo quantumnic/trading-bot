@@ -6,22 +6,28 @@ from datetime import datetime
 from config import STATE_FILE, PERFORMANCE_FILE, INITIAL_BALANCE
 
 def show_status():
+    # Always prefer bot_state.json as source of truth
     try:
-        with open(PERFORMANCE_FILE) as f:
-            perf = json.load(f)
+        with open(STATE_FILE) as f:
+            state = json.load(f)
+        trades = state.get("trades", [])
+        wins = [t for t in trades if t["pnl"] > 0]
+        losses = [t for t in trades if t["pnl"] <= 0]
+        total_pnl = sum(t["pnl"] for t in trades)
+        perf = {
+            "balance": state["balance"],
+            "total_trades": len(trades),
+            "wins": len(wins),
+            "losses": len(losses),
+            "win_rate": (len(wins) / len(trades) * 100) if trades else 0,
+            "total_pnl": total_pnl,
+            "max_drawdown_pct": state.get("max_drawdown", 0) * 100,
+            "position": state.get("position"),
+            "trades": trades,
+        }
     except FileNotFoundError:
-        try:
-            with open(STATE_FILE) as f:
-                state = json.load(f)
-                perf = {
-                    "balance": state["balance"],
-                    "total_trades": len(state.get("trades", [])),
-                    "position": state.get("position"),
-                    "trades": state.get("trades", []),
-                }
-        except FileNotFoundError:
-            print("❌ No bot state found. Is the bot running?")
-            return
+        print("❌ No bot state found. Is the bot running?")
+        return
 
     bal = perf.get("balance", INITIAL_BALANCE)
     ret = (bal - INITIAL_BALANCE) / INITIAL_BALANCE * 100
