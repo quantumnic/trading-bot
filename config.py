@@ -21,7 +21,7 @@ STOP_LOSS_PCT = 0.02  # 2% stop loss
 TAKE_PROFIT_PCT = 0.04  # 4% take profit (2:1 R/R)
 TRAILING_STOP_PCT = 0.015  # 1.5% trailing stop
 MIN_SIGNAL_SCORE = 5  # Minimum confirmation points (out of 7) for entry
-MIN_HOLD_CANDLES = 10  # Hold position at least N candles before signal-exit
+MIN_HOLD_CANDLES = 20  # Hold position at least N candles (~100min on 5m) before signal-exit
 
 # Bot Settings
 LOG_FILE = "trades.log"

@@ -50,6 +50,31 @@ def bollinger_bands(series: pd.Series, period=20, std_dev=2):
     return upper, middle, lower
 
 
+def adx(df: pd.DataFrame, period=14) -> pd.Series:
+    """Average Directional Index — measures trend strength."""
+    high = df["high"]
+    low = df["low"]
+    close = df["close"]
+
+    plus_dm = high.diff()
+    minus_dm = -low.diff()
+    plus_dm = plus_dm.where((plus_dm > minus_dm) & (plus_dm > 0), 0.0)
+    minus_dm = minus_dm.where((minus_dm > plus_dm) & (minus_dm > 0), 0.0)
+
+    tr1 = high - low
+    tr2 = (high - close.shift()).abs()
+    tr3 = (low - close.shift()).abs()
+    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+
+    atr = tr.ewm(span=period, adjust=False).mean()
+    plus_di = 100 * (plus_dm.ewm(span=period, adjust=False).mean() / atr)
+    minus_di = 100 * (minus_dm.ewm(span=period, adjust=False).mean() / atr)
+
+    dx = 100 * ((plus_di - minus_di).abs() / (plus_di + minus_di).replace(0, 1))
+    adx_val = dx.ewm(span=period, adjust=False).mean()
+    return adx_val
+
+
 class EMAcrossRSI:
     """EMA crossover + RSI filter + MACD confirmation."""
 
@@ -73,6 +98,11 @@ class EMAcrossRSI:
         cur_price_val = close.iloc[-1]
         is_uptrend = cur_price_val > cur_trend
         is_downtrend = cur_price_val < cur_trend
+
+        # ADX: only trade when there IS a trend (ADX > 25)
+        adx_val = adx(df)
+        cur_adx = adx_val.iloc[-1]
+        has_trend = cur_adx > 25
 
         # Indicators
         ema_fast = ema(close, self.fast)
@@ -161,20 +191,22 @@ class EMAcrossRSI:
         # Decision — require strong confluence + trend alignment
         from config import MIN_SIGNAL_SCORE
 
-        # Only go LONG in uptrend, only SELL/exit in downtrend
-        if buy_signals >= MIN_SIGNAL_SCORE and buy_signals > sell_signals + 1 and is_uptrend:
+        # Only trade with trend + ADX confirmation
+        if buy_signals >= MIN_SIGNAL_SCORE and buy_signals > sell_signals + 1 and is_uptrend and has_trend:
             confidence = min(buy_signals / 7, 1.0)
             return TradeSignal(Signal.BUY, confidence,
-                               " + ".join(reasons) + " [Uptrend ✅]")
+                               " + ".join(reasons) + f" [Uptrend ✅ ADX:{cur_adx:.0f}]")
         elif sell_signals >= MIN_SIGNAL_SCORE and sell_signals > buy_signals + 1:
             confidence = min(sell_signals / 7, 1.0)
             return TradeSignal(Signal.SELL, confidence,
                                " + ".join(sell_reasons) +
                                (" [Downtrend ⚠️]" if is_downtrend else ""))
         elif is_downtrend and buy_signals >= MIN_SIGNAL_SCORE:
-            # Would buy but trend is against us — skip
             return TradeSignal(Signal.HOLD, 0,
-                               f"Buy signal blocked by downtrend (price < EMA50)")
+                               f"Buy blocked: downtrend (price < EMA50)")
+        elif not has_trend and buy_signals >= MIN_SIGNAL_SCORE:
+            return TradeSignal(Signal.HOLD, 0,
+                               f"Buy blocked: no trend (ADX={cur_adx:.0f} < 25)")
 
         return TradeSignal(Signal.HOLD, 0,
                            f"No clear signal (buy={buy_signals}, sell={sell_signals})")
