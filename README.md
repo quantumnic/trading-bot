@@ -6,11 +6,11 @@ Live BTC paper trading bot mit echten Marktdaten von Binance.
 
 **EMA Crossover + RSI + MACD + Bollinger Bands**
 
-- EMA(9) kreuzt EMA(21) → Trendwechsel-Signal
+- EMA(12) kreuzt EMA(26) → Trendwechsel-Signal
 - RSI(14) filtert Overbought/Oversold
 - MACD bestätigt Momentum
 - Bollinger Bands für Mean-Reversion-Signale
-- Mindestens 4/7 Konfirmationspunkten für Trade-Einstieg
+- Mindestens 5/7 Konfirmationspunkte für Trade-Einstieg
 
 ## Risk Management
 
@@ -28,7 +28,7 @@ Live BTC paper trading bot mit echten Marktdaten von Binance.
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-pip install pandas numpy requests websockets ta aiohttp
+pip install pandas numpy requests websockets matplotlib
 ```
 
 ## Starten
@@ -51,11 +51,12 @@ strategy.py     → Trading-Strategien (modular, austauschbar)
 paper_trader.py → Paper Trading Engine, P&L, Risk Management
 config.py       → Alle Parameter an einem Ort
 status.py       → Quick Status Check
+chart.py        → Performance-Chart (performance.png)
 ```
 
 ## Features
 
-- ✅ Live Binance WebSocket (1-min Candles)
+- ✅ Live Binance WebSocket (5-min Candles)
 - ✅ Paper Trading mit Fake-Geld
 - ✅ State-Persistenz (überlebt Neustarts)
 - ✅ Trailing Stop Loss
